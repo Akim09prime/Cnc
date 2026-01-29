@@ -229,6 +229,13 @@
           <button class="primary" id="csv-parse">Parse CSV</button>
         </div>
         <div class="panel" style="margin-top:12px;">
+          <h3>Sample CSV (for quick testing)</h3>
+          <textarea id="csv-sample" rows="6" readonly></textarea>
+          <div class="flex" style="margin-top:8px;">
+            <button class="secondary" id="csv-load-sample">Load Sample CSV</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:12px;">
           <h3>Mapping Wizard</h3>
           <div class="grid grid-3" id="csv-mapping"></div>
           <div class="flex" style="margin-top:8px;">
@@ -414,6 +421,14 @@
     assignViewIds: [],
     lastSelectedIndex: null
   };
+
+  const sampleCsvText = [
+    'id,name,room,cabinet,material,thickness,width,height,qty,roleTags',
+    'D615,Door 615,Kitchen,Base,MDF 18mm,18,615,2200,1,front',
+    'D620,Door 620,Kitchen,Base,MDF 18mm,18,620,2200,1,front',
+    'D603,Door 603,Kitchen,Base,MDF 18mm,18,603,2200,1,front',
+    'P450,Panel 450,Living,Upper,PLY 18mm,18,450,800,2,side'
+  ].join('\n');
 
   function loadState() {
     state.projects = loadJSON(LS_KEYS.projects, []);
@@ -683,6 +698,72 @@
     saveState();
     renderPieces();
     renderAssignTable();
+  }
+
+  function loadCsvText(text) {
+    const parsed = parseCsv(text);
+    const hasHeader = document.getElementById('csv-has-header').checked;
+    const headers = hasHeader ? parsed.rows[0] : parsed.rows[0].map((_, idx) => `COL${idx+1}`);
+    const mapping = buildAutoMapping(headers);
+    renderCsvMappingOptions(headers, mapping);
+    renderCsvPreview(parsed, hasHeader);
+    document.getElementById('csv-import').dataset.parsed = JSON.stringify(parsed);
+  }
+
+  function buildAutoMapping(headers) {
+    const targetMap = {
+      id: ['id'],
+      name: ['name'],
+      room: ['room'],
+      cabinet: ['cabinet'],
+      material: ['material'],
+      thickness: ['thickness', 'thickness_mm'],
+      width: ['width', 'width_mm'],
+      height: ['height', 'height_mm'],
+      qty: ['qty', 'quantity'],
+      roleTags: ['roleTags', 'tags']
+    };
+    const mapping = {};
+    const headerLower = headers.map(h => h.toLowerCase());
+    Object.entries(targetMap).forEach(([field, candidates]) => {
+      const idx = headerLower.findIndex(h => candidates.includes(h));
+      mapping[field] = idx >= 0 ? headers[idx] : null;
+    });
+    return mapping;
+  }
+
+  function seedDemoData() {
+    if (state.projects.length || state.pieces.length) return;
+    state.projects.push({ name: 'Demo Project', created: new Date().toLocaleDateString(), active: true });
+    const demoPieces = [
+      { id: 'D615', name: 'Door 615', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 615, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null },
+      { id: 'D620', name: 'Door 620', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 620, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null },
+      { id: 'D603', name: 'Door 603', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 603, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null }
+    ];
+    state.pieces.push(...demoPieces);
+    const baseAssignment = {
+      patternId: 'FLU_CONCAVE',
+      orientation: 'VERTICAL',
+      includeCutOuter: true,
+      distributionMode: 'LOCK_MARGINS_AUTO_PITCH',
+      alignMode: 'CENTERED',
+      margins: { left: 25, right: 25, top: 25, bottom: 25 },
+      pitchTarget: 20,
+      pitchTolerance: 0.3,
+      pitchRounding: 0.01,
+      startOffset: 0,
+      useGroupMaster: false
+    };
+    demoPieces.forEach(piece => {
+      const computed = computeAssignment(piece, baseAssignment);
+      state.assignments[piece.id] = {
+        ...baseAssignment,
+        computedPitch: computed ? computed.pitch : null,
+        computedCount: computed ? computed.n : null,
+        pitchWithinTolerance: computed ? computed.within : null
+      };
+    });
+    saveState();
   }
 
   function buildAssignmentFromForm() {
@@ -1457,6 +1538,11 @@
       reader.readAsText(file);
     });
 
+    document.getElementById('csv-load-sample').addEventListener('click', () => {
+      document.getElementById('csv-has-header').checked = true;
+      loadCsvText(sampleCsvText);
+    });
+
     document.getElementById('csv-save-mapping').addEventListener('click', () => {
       const mapping = {};
       document.querySelectorAll('[data-map]').forEach(select => {
@@ -1493,6 +1579,8 @@
 
   function initialize() {
     loadState();
+    seedDemoData();
+    document.getElementById('csv-sample').value = sampleCsvText;
     renderProjects();
     renderPieces();
     renderPatternLibrary();
