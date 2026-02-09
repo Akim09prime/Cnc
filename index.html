@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CNC Pattern Lab</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #d1d5db;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    height: 100vh;
+  }
+  nav {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  nav h1 {
+    font-size: 16px;
+    margin: 0 0 12px;
+  }
+  nav button {
+    background: none;
+    border: 1px solid transparent;
+    color: #e2e8f0;
+    text-align: left;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  nav button.active {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  main {
+    padding: 16px;
+    overflow: auto;
+  }
+  section {
+    display: none;
+  }
+  section.active {
+    display: block;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .grid {
+    display: grid;
+    gap: 12px;
+  }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  label {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #e5e7eb;
+    color: #111827;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 6px;
+    text-align: left;
+  }
+  th { background: #f1f5f9; }
+  .flex {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .muted { color: var(--muted); }
+  .warning { color: #b45309; }
+  .preview-wrap {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 12px;
+  }
+  .preview-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    min-height: 420px;
+  }
+  svg {
+    width: 100%;
+    height: 400px;
+    background: #f8fafc;
+  }
+  .tag {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <h1>CNC Pattern Lab</h1>
+    <button data-section="projects" class="active">Projects</button>
+    <button data-section="quick-order">Quick Order</button>
+    <button data-section="import-csv">Import CSV</button>
+    <button data-section="pieces">Pieces</button>
+    <button data-section="pattern-library">Pattern Library</button>
+    <button data-section="assign">Assign</button>
+    <button data-section="preview">Preview/Compare</button>
+    <button data-section="export">Export</button>
+  </nav>
+  <main>
+    <section id="projects" class="active">
+      <div class="panel">
+        <h2>Projects</h2>
+        <div class="grid grid-2">
+          <div>
+            <label>Project name</label>
+            <input id="project-name" placeholder="e.g. Apartment A" />
+          </div>
+          <div class="flex" style="align-items:flex-end;">
+            <button class="primary" id="project-add">Add Project</button>
+          </div>
+        </div>
+        <div id="project-list" class="panel" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <section id="quick-order">
+      <div class="panel">
+        <h2>Quick Order</h2>
+        <div class="grid grid-3">
+          <div>
+            <label>Name</label>
+            <input id="qo-name" />
+          </div>
+          <div>
+            <label>Width (mm)</label>
+            <input id="qo-width" type="number" />
+          </div>
+          <div>
+            <label>Height (mm)</label>
+            <input id="qo-height" type="number" />
+          </div>
+          <div>
+            <label>Thickness (mm)</label>
+            <input id="qo-thickness" type="number" />
+          </div>
+          <div>
+            <label>Quantity</label>
+            <input id="qo-qty" type="number" value="1" />
+          </div>
+          <div>
+            <label>Material</label>
+            <input id="qo-material" />
+          </div>
+          <div>
+            <label>Room</label>
+            <input id="qo-room" />
+          </div>
+          <div>
+            <label>Cabinet</label>
+            <input id="qo-cabinet" />
+          </div>
+        </div>
+        <div class="flex" style="margin-top:10px;">
+          <button class="primary" id="qo-add">Add Piece</button>
+          <button class="secondary" id="qo-dup">Duplicate Last</button>
+          <button class="secondary" id="qo-clear">Clear Form</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="import-csv">
+      <div class="panel">
+        <h2>Import CSV</h2>
+        <div class="flex">
+          <input type="file" id="csv-file" accept=".csv,text/csv" />
+          <button class="primary" id="csv-parse">Parse CSV</button>
+        </div>
+        <div class="panel" style="margin-top:12px;">
+          <h3>Sample CSV (for quick testing)</h3>
+          <textarea id="csv-sample" rows="6" readonly></textarea>
+          <div class="flex" style="margin-top:8px;">
+            <button class="secondary" id="csv-load-sample">Load Sample CSV</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:12px;">
+          <h3>Mapping Wizard</h3>
+          <div class="grid grid-3" id="csv-mapping"></div>
+          <div class="flex" style="margin-top:8px;">
+            <label><input type="checkbox" id="csv-has-header" checked /> CSV has header</label>
+            <button class="secondary" id="csv-save-mapping">Save Mapping Preset</button>
+            <button class="primary" id="csv-import">Import Pieces</button>
+          </div>
+          <div id="csv-preview" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pieces">
+      <div class="panel">
+        <h2>Pieces</h2>
+        <div class="flex" style="margin-bottom:8px;">
+          <input id="pieces-filter" placeholder="Filter by name, room, material" />
+          <button class="secondary" id="pieces-refresh">Refresh</button>
+        </div>
+        <div id="pieces-table"></div>
+      </div>
+    </section>
+
+    <section id="pattern-library">
+      <div class="panel">
+        <h2>Pattern Library v1</h2>
+        <div id="pattern-list"></div>
+      </div>
+    </section>
+
+    <section id="assign">
+      <div class="panel">
+        <h2>Assign Patterns</h2>
+        <div class="grid" style="grid-template-columns: 2fr 1fr; gap:16px;">
+          <div>
+            <div class="flex" style="margin-bottom:8px;">
+              <input id="assign-filter" placeholder="Filter pieces" />
+              <button class="secondary" id="assign-refresh">Refresh</button>
+            </div>
+            <div id="assign-table"></div>
+          </div>
+          <div>
+            <div class="panel">
+              <h3>Assignment</h3>
+              <label>Pattern</label>
+              <select id="assign-pattern"></select>
+              <label>Orientation</label>
+              <select id="assign-orientation">
+                <option value="VERTICAL">VERTICAL</option>
+                <option value="HORIZONTAL">HORIZONTAL</option>
+              </select>
+              <label>Include CUT_OUTER</label>
+              <select id="assign-cutouter">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              <label>Distribution Mode</label>
+              <select id="assign-distribution">
+                <option value="LOCK_MARGINS_AUTO_PITCH">LOCK_MARGINS_AUTO_PITCH</option>
+                <option value="LOCK_PITCH_AUTO_MARGINS">LOCK_PITCH_AUTO_MARGINS</option>
+                <option value="LOCK_COUNT_AUTO_PITCH">LOCK_COUNT_AUTO_PITCH</option>
+              </select>
+              <label>Align Mode</label>
+              <select id="assign-align">
+                <option value="CENTERED">CENTERED</option>
+                <option value="EDGE_START">EDGE_START</option>
+                <option value="EDGE_END">EDGE_END</option>
+              </select>
+              <div class="grid grid-2">
+                <div>
+                  <label>Margin Left</label>
+                  <input id="assign-ml" type="number" value="25" />
+                </div>
+                <div>
+                  <label>Margin Right</label>
+                  <input id="assign-mr" type="number" value="25" />
+                </div>
+                <div>
+                  <label>Margin Top</label>
+                  <input id="assign-mt" type="number" value="25" />
+                </div>
+                <div>
+                  <label>Margin Bottom</label>
+                  <input id="assign-mb" type="number" value="25" />
+                </div>
+              </div>
+              <div class="grid grid-2">
+                <div>
+                  <label>Pitch Target</label>
+                  <input id="assign-pitch" type="number" value="20" />
+                </div>
+                <div>
+                  <label>Pitch Tolerance</label>
+                  <input id="assign-tol" type="number" value="0.30" step="0.01" />
+                </div>
+                <div>
+                  <label>Pitch Rounding</label>
+                  <input id="assign-round" type="number" value="0.01" step="0.01" />
+                </div>
+                <div>
+                  <label>Start Offset</label>
+                  <input id="assign-offset" type="number" value="0" step="0.01" />
+                </div>
+              </div>
+              <div class="panel" style="margin-top:8px;">
+                <h4>Group Reference (Master)</h4>
+                <label><input type="checkbox" id="assign-master-enable" /> Use Group Reference (Master)</label>
+                <button class="secondary" id="assign-set-master" style="margin-top:6px;">Set selected as MASTER</button>
+                <div class="muted" style="margin-top:6px;">Master pitch computed with LOCK_MARGINS_AUTO_PITCH.</div>
+              </div>
+              <div class="flex" style="margin-top:10px;">
+                <button class="primary" id="assign-apply">Apply to selected</button>
+                <button class="secondary" id="assign-clear">Clear assignment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="preview">
+      <div class="panel">
+        <h2>Preview / Compare</h2>
+        <div class="preview-wrap">
+          <div class="preview-box">
+            <svg id="preview-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div class="panel">
+            <h3>Details</h3>
+            <div id="preview-details" class="muted">Select a piece in Assign or Pieces.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="export">
+      <div class="panel">
+        <h2>Export</h2>
+        <div class="flex">
+          <button class="primary" id="export-zip">Export ZIP</button>
+          <button class="secondary" id="export-all">Export All DXF (separate files)</button>
+        </div>
+        <div id="export-status" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+(function() {
+  const LS_KEYS = {
+    projects: 'cnc_projects',
+    pieces: 'cnc_pieces',
+    assignments: 'cnc_assignments',
+    patterns: 'cnc_patterns',
+    presets: 'cnc_presets',
+    csvMappings: 'cnc_csv_mappings'
+  };
+
+  const defaultPatterns = [
+    { id: 'FLU_CONCAVE', name: 'FLU_CONCAVE', type: 'ENGRAVE_LINES', pitchTarget: 20, depth: 4, startOffset: 0 },
+    { id: 'FLU_CONVEX', name: 'FLU_CONVEX', type: 'ENGRAVE_LINES', pitchTarget: 20, depth: 3, startOffset: 0 },
+    { id: 'MICRO_RIB', name: 'MICRO_RIB', type: 'ENGRAVE_LINES', pitchTarget: 8, depth: 2, startOffset: 0 },
+    { id: 'V_GROOVE_REG', name: 'V_GROOVE_REG', type: 'V_CARVE_LINES', pitchTarget: 50, depth: 3, vAngle: 90, startOffset: 0 },
+    { id: 'V_GROOVE_RANDOM', name: 'V_GROOVE_RANDOM', type: 'V_CARVE_LINES', pitchMin: 35, pitchMax: 80, depth: 3, vAngle: 90 },
+    { id: 'TNG_PANEL', name: 'TNG_PANEL', type: 'POCKET_REGIONS', panelWidth: 120, grooveWidth: 6, pocketDepth: 4 },
+    { id: 'DIAG_GROOVE', name: 'DIAG_GROOVE', type: 'ENGRAVE_LINES', pitchTarget: 60, depth: 3, angle: 45, startOffset: 0 },
+    { id: 'CHEVRON', name: 'CHEVRON', type: 'V_CARVE_LINES', chevronWidth: 140, depth: 3, vAngle: 90, centerAlign: true },
+    { id: 'GRID_POCKET', name: 'GRID_POCKET', type: 'POCKET_REGIONS', cell: 120, wall: 10, pocketDepth: 2, cornerRadius: 2 },
+    { id: 'WAVE_SINE', name: 'WAVE_SINE', type: 'ENGRAVE_LINES', wavelength: 220, amplitude: 8, lineSpacing: 20, depth: 2, sampleStep: 3 },
+    { id: 'RIPPLE_INTERF', name: 'RIPPLE_INTERF', type: 'ENGRAVE_LINES', wavelength1: 180, wavelength2: 260, amplitude: 6, lineSpacing: 22, depth: 2, sampleStep: 3 },
+    { id: 'SUNBURST_RADIAL', name: 'SUNBURST_RADIAL', type: 'ENGRAVE_ARCS', centerX: 0.5, centerY: 0.4, ringSpacing: 25, depth: 3, ringCountAuto: true }
+  ];
+
+  const state = {
+    projects: [],
+    pieces: [],
+    assignments: {},
+    patterns: [],
+    presets: [],
+    csvMappings: [],
+    selectedPieces: new Set(),
+    masterPieceId: null,
+    assignViewIds: [],
+    lastSelectedIndex: null
+  };
+
+  const sampleCsvText = [
+    'id,name,room,cabinet,material,thickness,width,height,qty,roleTags',
+    'D615,Door 615,Kitchen,Base,MDF 18mm,18,615,2200,1,front',
+    'D620,Door 620,Kitchen,Base,MDF 18mm,18,620,2200,1,front',
+    'D603,Door 603,Kitchen,Base,MDF 18mm,18,603,2200,1,front',
+    'P450,Panel 450,Living,Upper,PLY 18mm,18,450,800,2,side'
+  ].join('\n');
+
+  function loadState() {
+    state.projects = loadJSON(LS_KEYS.projects, []);
+    state.pieces = loadJSON(LS_KEYS.pieces, []);
+    state.assignments = loadJSON(LS_KEYS.assignments, {});
+    state.patterns = loadJSON(LS_KEYS.patterns, defaultPatterns);
+    state.presets = loadJSON(LS_KEYS.presets, []);
+    state.csvMappings = loadJSON(LS_KEYS.csvMappings, []);
+    if (!state.patterns || state.patterns.length === 0) {
+      state.patterns = defaultPatterns;
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(LS_KEYS.projects, JSON.stringify(state.projects));
+    localStorage.setItem(LS_KEYS.pieces, JSON.stringify(state.pieces));
+    localStorage.setItem(LS_KEYS.assignments, JSON.stringify(state.assignments));
+    localStorage.setItem(LS_KEYS.patterns, JSON.stringify(state.patterns));
+    localStorage.setItem(LS_KEYS.presets, JSON.stringify(state.presets));
+    localStorage.setItem(LS_KEYS.csvMappings, JSON.stringify(state.csvMappings));
+  }
+
+  function loadJSON(key, fallback) {
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      return data ?? fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function uid() {
+    return 'P' + Math.random().toString(36).slice(2, 9);
+  }
+
+  function roundTo(value, step) {
+    if (!step) return value;
+    return Math.round(value / step) * step;
+  }
+
+  function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash >>> 0;
+  }
+
+  function mulberry32(a) {
+    return function() {
+      let t = a += 0x6d2b79f5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function formatNum(value) {
+    return Math.round(value * 100) / 100;
+  }
+
+  function detectMdfFront(piece) {
+    const material = (piece.material || '').toLowerCase();
+    const text = `${piece.name || ''} ${(piece.roleTags || '')}`.toLowerCase();
+    const keyWords = ['front', 'door', 'ușă', 'usa', 'sertar', 'drawer', 'fața', 'fata'];
+    const hasKey = keyWords.some((k) => text.includes(k));
+    return material.includes('mdf') && hasKey;
+  }
+
+  function getPieceMdfFlag(piece) {
+    if (typeof piece.isMdfFrontOverride === 'boolean') return piece.isMdfFrontOverride;
+    return detectMdfFront(piece);
+  }
+
+  function setActiveSection(id) {
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === id);
+    });
+    document.querySelectorAll('main section').forEach(sec => {
+      sec.classList.toggle('active', sec.id === id);
+    });
+  }
+
+  function renderProjects() {
+    const container = document.getElementById('project-list');
+    if (state.projects.length === 0) {
+      container.innerHTML = '<div class="muted">No projects yet.</div>';
+      return;
+    }
+    container.innerHTML = state.projects.map((p, i) => {
+      return `<div class="flex" style="margin-bottom:6px;">
+        <span>${p.name}</span>
+        <span class="muted">(${p.created})</span>
+        <button class="secondary" data-project="${i}">Select</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderPieces() {
+    const filter = (document.getElementById('pieces-filter').value || '').toLowerCase();
+    const rows = state.pieces.filter(piece => {
+      const blob = `${piece.name} ${piece.room} ${piece.material}`.toLowerCase();
+      return blob.includes(filter);
+    });
+    const container = document.getElementById('pieces-table');
+    if (rows.length === 0) {
+      container.innerHTML = '<div class="muted">No pieces.</div>';
+      return;
+    }
+    container.innerHTML = `<table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Room</th><th>Material</th><th>W</th><th>H</th><th>Qty</th><th>MDF Front</th><th>Override</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(piece => `
+          <tr>
+            <td>${piece.id}</td>
+            <td>${piece.name || ''}</td>
+            <td>${piece.room || ''}</td>
+            <td>${piece.material || ''}</td>
+            <td>${piece.width_mm}</td>
+            <td>${piece.height_mm}</td>
+            <td>${piece.qty}</td>
+            <td>${getPieceMdfFlag(piece) ? 'Yes' : 'No'}</td>
+            <td>
+              <input type="checkbox" data-override="${piece.id}" ${piece.isMdfFrontOverride === true ? 'checked' : ''} />
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderPatternLibrary() {
+    const container = document.getElementById('pattern-list');
+    container.innerHTML = `<table>
+      <thead>
+        <tr><th>ID</th><th>Type</th><th>Defaults</th></tr>
+      </thead>
+      <tbody>
+        ${state.patterns.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.type}</td>
+            <td>${Object.entries(p).filter(([k]) => !['id','name','type'].includes(k))
+              .map(([k,v]) => `<span class="tag">${k}:${v}</span>`).join(' ')}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderAssignTable() {
+    const filter = (document.getElementById('assign-filter').value || '').toLowerCase();
+    const rows = state.pieces.filter(piece => {
+      const blob = `${piece.name} ${piece.room} ${piece.material}`.toLowerCase();
+      return blob.includes(filter);
+    });
+    state.assignViewIds = rows.map(piece => piece.id);
+    const container = document.getElementById('assign-table');
+    if (rows.length === 0) {
+      container.innerHTML = '<div class="muted">No pieces.</div>';
+      return;
+    }
+    container.innerHTML = `<table>
+      <thead>
+        <tr><th></th><th>ID</th><th>Name</th><th>W</th><th>H</th><th>Pattern</th><th>Pitch</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map((piece, idx) => {
+          const assign = state.assignments[piece.id];
+          const selected = state.selectedPieces.has(piece.id);
+          return `
+          <tr data-row="${piece.id}" data-index="${idx}">
+            <td><input type="checkbox" data-select="${piece.id}" ${selected ? 'checked' : ''} /></td>
+            <td>${piece.id}</td>
+            <td>${piece.name || ''}</td>
+            <td>${piece.width_mm}</td>
+            <td>${piece.height_mm}</td>
+            <td>${assign ? assign.patternId : ''}</td>
+            <td>${assign && assign.computedPitch ? assign.computedPitch : ''}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderAssignPatternOptions() {
+    const select = document.getElementById('assign-pattern');
+    select.innerHTML = state.patterns.map(p => `<option value="${p.id}">${p.id}</option>`).join('');
+  }
+
+  function renderCsvMappingOptions(headers, mapping) {
+    const fields = ['id','name','room','cabinet','material','thickness','width','height','qty','roleTags'];
+    const container = document.getElementById('csv-mapping');
+    container.innerHTML = fields.map(field => {
+      const options = ['(ignore)'].concat(headers).map(h => {
+        const selected = mapping && mapping[field] === h ? 'selected' : '';
+        return `<option value="${h}" ${selected}>${h}</option>`;
+      }).join('');
+      return `<div><label>${field}</label><select data-map="${field}">${options}</select></div>`;
+    }).join('');
+  }
+
+  function parseCsv(text) {
+    const delimiter = detectDelimiter(text);
+    const rows = text.split(/\r?\n/).filter(line => line.trim().length > 0).map(line => line.split(delimiter));
+    return { rows, delimiter };
+  }
+
+  function detectDelimiter(text) {
+    const samples = [',',';','\t'];
+    const lines = text.split(/\r?\n/).slice(0,5).join('\n');
+    let best = ',';
+    let bestCount = -1;
+    samples.forEach(delim => {
+      const count = (lines.match(new RegExp(`\\${delim}`, 'g')) || []).length;
+      if (count > bestCount) {
+        bestCount = count;
+        best = delim;
+      }
+    });
+    return best;
+  }
+
+  function toNumber(value) {
+    if (value == null) return null;
+    const cleaned = value.toString().trim().replace(',', '.');
+    const num = parseFloat(cleaned);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  function applyCsvImport(parsed) {
+    const hasHeader = document.getElementById('csv-has-header').checked;
+    const mapping = {};
+    document.querySelectorAll('[data-map]').forEach(select => {
+      const field = select.dataset.map;
+      const value = select.value;
+      mapping[field] = value === '(ignore)' ? null : value;
+    });
+    const headers = hasHeader ? parsed.rows[0] : parsed.rows[0].map((_, idx) => `COL${idx+1}`);
+    const dataRows = hasHeader ? parsed.rows.slice(1) : parsed.rows;
+    const headerIndex = {};
+    headers.forEach((h, idx) => { headerIndex[h] = idx; });
+
+    dataRows.forEach(row => {
+      if (row.length === 0) return;
+      const piece = {
+        id: (mapping.id && row[headerIndex[mapping.id]]) || uid(),
+        name: mapping.name ? row[headerIndex[mapping.name]] : '',
+        room: mapping.room ? row[headerIndex[mapping.room]] : '',
+        cabinet: mapping.cabinet ? row[headerIndex[mapping.cabinet]] : '',
+        material: mapping.material ? row[headerIndex[mapping.material]] : '',
+        thickness_mm: toNumber(mapping.thickness ? row[headerIndex[mapping.thickness]] : 18) || 18,
+        width_mm: toNumber(mapping.width ? row[headerIndex[mapping.width]] : 0) || 0,
+        height_mm: toNumber(mapping.height ? row[headerIndex[mapping.height]] : 0) || 0,
+        qty: toNumber(mapping.qty ? row[headerIndex[mapping.qty]] : 1) || 1,
+        roleTags: mapping.roleTags ? row[headerIndex[mapping.roleTags]] : '',
+        isMdfFrontOverride: null
+      };
+      state.pieces.push(piece);
+    });
+    saveState();
+    renderPieces();
+    renderAssignTable();
+  }
+
+  function loadCsvText(text) {
+    const parsed = parseCsv(text);
+    const hasHeader = document.getElementById('csv-has-header').checked;
+    const headers = hasHeader ? parsed.rows[0] : parsed.rows[0].map((_, idx) => `COL${idx+1}`);
+    const mapping = buildAutoMapping(headers);
+    renderCsvMappingOptions(headers, mapping);
+    renderCsvPreview(parsed, hasHeader);
+    document.getElementById('csv-import').dataset.parsed = JSON.stringify(parsed);
+  }
+
+  function buildAutoMapping(headers) {
+    const targetMap = {
+      id: ['id'],
+      name: ['name'],
+      room: ['room'],
+      cabinet: ['cabinet'],
+      material: ['material'],
+      thickness: ['thickness', 'thickness_mm'],
+      width: ['width', 'width_mm'],
+      height: ['height', 'height_mm'],
+      qty: ['qty', 'quantity'],
+      roleTags: ['roleTags', 'tags']
+    };
+    const mapping = {};
+    const headerLower = headers.map(h => h.toLowerCase());
+    Object.entries(targetMap).forEach(([field, candidates]) => {
+      const idx = headerLower.findIndex(h => candidates.includes(h));
+      mapping[field] = idx >= 0 ? headers[idx] : null;
+    });
+    return mapping;
+  }
+
+  function seedDemoData() {
+    if (state.projects.length || state.pieces.length) return;
+    state.projects.push({ name: 'Demo Project', created: new Date().toLocaleDateString(), active: true });
+    const demoPieces = [
+      { id: 'D615', name: 'Door 615', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 615, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null },
+      { id: 'D620', name: 'Door 620', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 620, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null },
+      { id: 'D603', name: 'Door 603', room: 'Kitchen', cabinet: 'Base', material: 'MDF 18mm', thickness_mm: 18, width_mm: 603, height_mm: 2200, qty: 1, roleTags: 'front', isMdfFrontOverride: null }
+    ];
+    state.pieces.push(...demoPieces);
+    const baseAssignment = {
+      patternId: 'FLU_CONCAVE',
+      orientation: 'VERTICAL',
+      includeCutOuter: true,
+      distributionMode: 'LOCK_MARGINS_AUTO_PITCH',
+      alignMode: 'CENTERED',
+      margins: { left: 25, right: 25, top: 25, bottom: 25 },
+      pitchTarget: 20,
+      pitchTolerance: 0.3,
+      pitchRounding: 0.01,
+      startOffset: 0,
+      useGroupMaster: false
+    };
+    demoPieces.forEach(piece => {
+      const computed = computeAssignment(piece, baseAssignment);
+      state.assignments[piece.id] = {
+        ...baseAssignment,
+        computedPitch: computed ? computed.pitch : null,
+        computedCount: computed ? computed.n : null,
+        pitchWithinTolerance: computed ? computed.within : null
+      };
+    });
+    saveState();
+  }
+
+  function buildAssignmentFromForm() {
+    return {
+      patternId: document.getElementById('assign-pattern').value,
+      orientation: document.getElementById('assign-orientation').value,
+      includeCutOuter: document.getElementById('assign-cutouter').value === 'true',
+      distributionMode: document.getElementById('assign-distribution').value,
+      alignMode: document.getElementById('assign-align').value,
+      margins: {
+        left: toNumber(document.getElementById('assign-ml').value) || 0,
+        right: toNumber(document.getElementById('assign-mr').value) || 0,
+        top: toNumber(document.getElementById('assign-mt').value) || 0,
+        bottom: toNumber(document.getElementById('assign-mb').value) || 0
+      },
+      pitchTarget: toNumber(document.getElementById('assign-pitch').value) || 20,
+      pitchTolerance: toNumber(document.getElementById('assign-tol').value) || 0.3,
+      pitchRounding: toNumber(document.getElementById('assign-round').value) || 0.01,
+      startOffset: toNumber(document.getElementById('assign-offset').value) || 0,
+      useGroupMaster: document.getElementById('assign-master-enable').checked
+    };
+  }
+
+  function computePitchLockMargins(axisLength, startMargin, endMargin, pitchTarget, tolerance, rounding, startOffset, alignMode) {
+    const usable = axisLength - startMargin - endMargin;
+    let n0 = Math.round(usable / pitchTarget);
+    n0 = Math.max(n0, 1);
+    let best = null;
+    for (let n = Math.max(1, n0 - 6); n <= n0 + 6; n++) {
+      const pitch = usable / n;
+      const diff = Math.abs(pitch - pitchTarget);
+      const within = pitch >= (pitchTarget - tolerance) && pitch <= (pitchTarget + tolerance);
+      if (!best || diff < best.diff || (within && !best.within)) {
+        best = { n, pitch, diff, within };
+      }
+    }
+    let pitch = roundTo(best.pitch, rounding);
+    let pos0 = 0;
+    if (alignMode === 'CENTERED') {
+      pos0 = startMargin + pitch / 2 + startOffset;
+    } else if (alignMode === 'EDGE_START') {
+      pos0 = startMargin + startOffset;
+    } else {
+      pos0 = (axisLength - endMargin) - startOffset - (best.n - 1) * pitch;
+    }
+    const positions = [];
+    for (let i = 0; i < best.n; i++) {
+      const pos = pos0 + i * pitch;
+      if (pos >= startMargin - 0.001 && pos <= axisLength - endMargin + 0.001) {
+        positions.push(pos);
+      }
+    }
+    return { n: best.n, pitch, positions, usable, pos0, within: best.within };
+  }
+
+  function computeAssignment(piece, assignment) {
+    const pattern = state.patterns.find(p => p.id === assignment.patternId);
+    if (!pattern) return null;
+    const margins = assignment.margins || { left:25,right:25,top:25,bottom:25 };
+    const orientation = assignment.orientation || 'VERTICAL';
+    let axisLength = orientation === 'VERTICAL' ? piece.width_mm : piece.height_mm;
+    const startMargin = orientation === 'VERTICAL' ? margins.left : margins.bottom;
+    const endMargin = orientation === 'VERTICAL' ? margins.right : margins.top;
+    const pitchTarget = assignment.pitchTarget || pattern.pitchTarget || 20;
+    const tol = assignment.pitchTolerance ?? 0.3;
+    const rounding = assignment.pitchRounding ?? 0.01;
+    const startOffset = assignment.startOffset ?? 0;
+    let computed = null;
+
+    if (assignment.distributionMode === 'LOCK_MARGINS_AUTO_PITCH') {
+      computed = computePitchLockMargins(axisLength, startMargin, endMargin, pitchTarget, tol, rounding, startOffset, assignment.alignMode || 'CENTERED');
+    } else if (assignment.distributionMode === 'LOCK_PITCH_AUTO_MARGINS') {
+      const count = Math.max(1, Math.round(axisLength / pitchTarget));
+      const total = (count - 1) * pitchTarget;
+      let extra = axisLength - total;
+      let newStart = startMargin;
+      let newEnd = endMargin;
+      if (assignment.alignMode === 'EDGE_START') {
+        newEnd = extra - newStart;
+      } else if (assignment.alignMode === 'EDGE_END') {
+        newStart = extra - newEnd;
+      } else {
+        newStart = extra / 2;
+        newEnd = extra / 2;
+      }
+      computed = computePitchLockMargins(axisLength, newStart, newEnd, pitchTarget, tol, rounding, startOffset, assignment.alignMode || 'CENTERED');
+    } else if (assignment.distributionMode === 'LOCK_COUNT_AUTO_PITCH') {
+      const count = Math.max(1, Math.round(axisLength / pitchTarget));
+      const usable = axisLength - startMargin - endMargin;
+      const pitch = usable / count;
+      computed = computePitchLockMargins(axisLength, startMargin, endMargin, pitch, tol, rounding, startOffset, assignment.alignMode || 'CENTERED');
+    } else {
+      computed = computePitchLockMargins(axisLength, startMargin, endMargin, pitchTarget, tol, rounding, startOffset, assignment.alignMode || 'CENTERED');
+    }
+    return { ...computed, axisLength, startMargin, endMargin, pattern };
+  }
+
+  function computeGroupMaster(masterPiece, assignment) {
+    const computed = computeAssignment(masterPiece, assignment);
+    if (!computed) return null;
+    return {
+      masterPitch: computed.pitch,
+      masterCount: computed.n
+    };
+  }
+
+  function applyAssignments(selectedIds, assignmentTemplate) {
+    const masterEnabled = assignmentTemplate.useGroupMaster;
+    let masterInfo = null;
+    if (masterEnabled && state.masterPieceId) {
+      const masterPiece = state.pieces.find(p => p.id === state.masterPieceId);
+      if (masterPiece) {
+        masterInfo = computeGroupMaster(masterPiece, assignmentTemplate);
+      }
+    }
+
+    selectedIds.forEach(id => {
+      const piece = state.pieces.find(p => p.id === id);
+      if (!piece) return;
+      const computed = computeAssignment(piece, assignmentTemplate);
+      let assigned = { ...assignmentTemplate };
+      if (computed) {
+        assigned.computedPitch = computed.pitch;
+        assigned.computedCount = computed.n;
+        assigned.pitchWithinTolerance = computed.within;
+      }
+      if (masterEnabled && masterInfo) {
+        const axisLength = assignmentTemplate.orientation === 'VERTICAL' ? piece.width_mm : piece.height_mm;
+        const margins = assignmentTemplate.margins;
+        const startMargin = assignmentTemplate.orientation === 'VERTICAL' ? margins.left : margins.bottom;
+        const endMargin = assignmentTemplate.orientation === 'VERTICAL' ? margins.right : margins.top;
+        const usable = axisLength - startMargin - endMargin;
+        const target = masterInfo.masterPitch;
+        const guess = Math.max(1, Math.round(usable / target));
+        let best = null;
+        for (let n = Math.max(1, guess - 8); n <= guess + 8; n++) {
+          const pitch = usable / n;
+          const diff = Math.abs(pitch - target);
+          if (!best || diff < best.diff) best = { n, pitch, diff };
+        }
+        assigned.groupMaster = {
+          masterPieceId: state.masterPieceId,
+          masterPitch: masterInfo.masterPitch,
+          piecePitch: roundTo(best.pitch, assignmentTemplate.pitchRounding || 0.01),
+          pieceCount: best.n,
+          delta: roundTo(best.pitch - masterInfo.masterPitch, assignmentTemplate.pitchRounding || 0.01)
+        };
+        assigned.computedPitch = assigned.groupMaster.piecePitch;
+        assigned.computedCount = assigned.groupMaster.pieceCount;
+        assigned.pitchWithinTolerance = Math.abs(assigned.groupMaster.piecePitch - masterInfo.masterPitch) <= (assignmentTemplate.pitchTolerance || 0.3);
+      }
+      state.assignments[id] = assigned;
+    });
+    saveState();
+    renderAssignTable();
+    renderPreview();
+  }
+
+  function clearAssignments(selectedIds) {
+    selectedIds.forEach(id => {
+      delete state.assignments[id];
+    });
+    saveState();
+    renderAssignTable();
+    renderPreview();
+  }
+
+  function buildLinesForPattern(piece, assignment, computed) {
+    const pattern = computed.pattern;
+    const margin = assignment.margins;
+    const lines = [];
+    const polylines = [];
+    const arcs = [];
+    const pockets = [];
+    const width = piece.width_mm;
+    const height = piece.height_mm;
+    const orientation = assignment.orientation;
+
+    if (pattern.type === 'ENGRAVE_LINES' || pattern.type === 'V_CARVE_LINES') {
+      if (pattern.id === 'DIAG_GROOVE') {
+        const spacing = computed.pitch;
+        const angle = (pattern.angle || 45) * Math.PI / 180;
+        const maxLen = Math.sqrt(width * width + height * height);
+        const count = Math.floor((width + height) / spacing) + 2;
+        for (let i = -count; i <= count; i++) {
+          const offset = i * spacing;
+          const x0 = -height + offset;
+          const y0 = 0;
+          const x1 = width + offset;
+          const y1 = height;
+          const seg = clipLineToRect({x:x0, y:y0}, {x:x1, y:y1}, width, height, margin);
+          if (seg) lines.push(seg);
+        }
+      } else if (pattern.id === 'CHEVRON') {
+        const chevronWidth = pattern.chevronWidth || 140;
+        const midY = height / 2;
+        const startX = margin.left;
+        const endX = width - margin.right;
+        for (let x = startX; x <= endX; x += chevronWidth) {
+          const xMid = x + chevronWidth / 2;
+          const xEnd = Math.min(x + chevronWidth, endX);
+          lines.push({ x1: x, y1: margin.bottom, x2: xMid, y2: height - margin.top });
+          lines.push({ x1: xMid, y1: height - margin.top, x2: xEnd, y2: margin.bottom });
+        }
+      } else if (pattern.id === 'WAVE_SINE' || pattern.id === 'RIPPLE_INTERF') {
+        const lineSpacing = pattern.lineSpacing || 20;
+        const sampleStep = pattern.sampleStep || 3;
+        for (let y = margin.bottom; y <= height - margin.top; y += lineSpacing) {
+          const points = [];
+          for (let x = margin.left; x <= width - margin.right; x += sampleStep) {
+            let wave = Math.sin((2 * Math.PI * x) / (pattern.wavelength || 220));
+            if (pattern.id === 'RIPPLE_INTERF') {
+              const wave2 = Math.sin((2 * Math.PI * x) / (pattern.wavelength2 || 260));
+              wave = (wave + wave2) / 2;
+            }
+            const yOffset = (pattern.amplitude || 8) * wave;
+            points.push({ x, y: y + yOffset });
+          }
+          polylines.push(points);
+        }
+      } else if (pattern.id === 'V_GROOVE_RANDOM') {
+        const rng = mulberry32(hashCode(piece.id || 'seed'));
+        const positions = [];
+        const axisLength = orientation === 'VERTICAL' ? width : height;
+        const startMargin = orientation === 'VERTICAL' ? margin.left : margin.bottom;
+        const endMargin = orientation === 'VERTICAL' ? margin.right : margin.top;
+        const usable = axisLength - startMargin - endMargin;
+        let cursor = startMargin;
+        while (cursor < startMargin + usable) {
+          positions.push(cursor);
+          const pitch = (pattern.pitchMin || 35) + rng() * ((pattern.pitchMax || 80) - (pattern.pitchMin || 35));
+          cursor += pitch;
+        }
+        positions.forEach(pos => {
+          if (orientation === 'VERTICAL') {
+            lines.push({ x1: pos, y1: margin.bottom, x2: pos, y2: height - margin.top });
+          } else {
+            lines.push({ x1: margin.left, y1: pos, x2: width - margin.right, y2: pos });
+          }
+        });
+      } else {
+        const positions = computed.positions;
+        if (orientation === 'VERTICAL') {
+          positions.forEach(pos => {
+            lines.push({ x1: pos, y1: margin.bottom, x2: pos, y2: height - margin.top });
+          });
+        } else {
+          positions.forEach(pos => {
+            lines.push({ x1: margin.left, y1: pos, x2: width - margin.right, y2: pos });
+          });
+        }
+      }
+    }
+
+    if (pattern.type === 'POCKET_REGIONS') {
+      if (pattern.id === 'GRID_POCKET') {
+        const cell = pattern.cell || 120;
+        const wall = pattern.wall || 10;
+        const usableW = width - margin.left - margin.right;
+        const usableH = height - margin.top - margin.bottom;
+        const cols = Math.floor((usableW + wall) / (cell + wall));
+        const rows = Math.floor((usableH + wall) / (cell + wall));
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = margin.left + c * (cell + wall);
+            const y = margin.bottom + r * (cell + wall);
+            pockets.push({ x, y, w: cell, h: cell, corner: pattern.cornerRadius || 0 });
+          }
+        }
+      } else if (pattern.id === 'TNG_PANEL') {
+        const panelWidth = pattern.panelWidth || 120;
+        const grooveWidth = pattern.grooveWidth || 6;
+        const usableW = width - margin.left - margin.right;
+        const count = Math.floor((usableW + grooveWidth) / (panelWidth + grooveWidth));
+        for (let i = 0; i < count; i++) {
+          const x = margin.left + i * (panelWidth + grooveWidth);
+          pockets.push({ x, y: margin.bottom, w: panelWidth, h: height - margin.top - margin.bottom, corner: 0 });
+        }
+      }
+    }
+
+    if (pattern.type === 'ENGRAVE_ARCS') {
+      const cx = width * (pattern.centerX || 0.5);
+      const cy = height * (pattern.centerY || 0.4);
+      const maxR = Math.min(cx - margin.left, width - margin.right - cx, cy - margin.bottom, height - margin.top - cy);
+      const spacing = pattern.ringSpacing || 25;
+      const count = Math.floor(maxR / spacing);
+      for (let i = 1; i <= count; i++) {
+        arcs.push({ cx, cy, r: i * spacing });
+      }
+    }
+
+    return { lines, polylines, arcs, pockets };
+  }
+
+  function clipLineToRect(p1, p2, width, height, margin) {
+    const xMin = margin.left;
+    const xMax = width - margin.right;
+    const yMin = margin.bottom;
+    const yMax = height - margin.top;
+    const points = [];
+    const candidates = [
+      intersectLineWithX(p1, p2, xMin),
+      intersectLineWithX(p1, p2, xMax),
+      intersectLineWithY(p1, p2, yMin),
+      intersectLineWithY(p1, p2, yMax)
+    ];
+    candidates.forEach(p => {
+      if (p && p.x >= xMin - 0.01 && p.x <= xMax + 0.01 && p.y >= yMin - 0.01 && p.y <= yMax + 0.01) {
+        points.push(p);
+      }
+    });
+    if (points.length >= 2) {
+      return { x1: points[0].x, y1: points[0].y, x2: points[1].x, y2: points[1].y };
+    }
+    return null;
+  }
+
+  function intersectLineWithX(p1, p2, x) {
+    if (p1.x === p2.x) return null;
+    const t = (x - p1.x) / (p2.x - p1.x);
+    if (t < 0 || t > 1) return null;
+    return { x, y: p1.y + t * (p2.y - p1.y) };
+  }
+
+  function intersectLineWithY(p1, p2, y) {
+    if (p1.y === p2.y) return null;
+    const t = (y - p1.y) / (p2.y - p1.y);
+    if (t < 0 || t > 1) return null;
+    return { x: p1.x + t * (p2.x - p1.x), y };
+  }
+
+  function renderPreview() {
+    const svg = document.getElementById('preview-svg');
+    const details = document.getElementById('preview-details');
+    const selectedId = Array.from(state.selectedPieces)[0];
+    if (!selectedId) {
+      svg.innerHTML = '';
+      details.textContent = 'Select a piece in Assign or Pieces.';
+      return;
+    }
+    const piece = state.pieces.find(p => p.id === selectedId);
+    const assignment = state.assignments[selectedId];
+    if (!piece || !assignment) {
+      svg.innerHTML = '';
+      details.textContent = 'Selected piece has no assignment.';
+      return;
+    }
+    const computed = computeAssignment(piece, assignment);
+    const vectors = buildLinesForPattern(piece, assignment, computed);
+    const width = piece.width_mm;
+    const height = piece.height_mm;
+    const margin = assignment.margins;
+    const viewBox = `0 0 ${width} ${height}`;
+    svg.setAttribute('viewBox', viewBox);
+    svg.innerHTML = `
+      <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" stroke="#111" stroke-width="2" />
+      <rect x="${margin.left}" y="${margin.bottom}" width="${width - margin.left - margin.right}" height="${height - margin.top - margin.bottom}" fill="none" stroke="#94a3b8" stroke-dasharray="6,4" />
+      ${vectors.lines.map(line => `<line x1="${line.x1}" y1="${height-line.y1}" x2="${line.x2}" y2="${height-line.y2}" stroke="#2563eb" stroke-width="1" />`).join('')}
+      ${vectors.polylines.map(points => `<polyline points="${points.map(p => `${p.x},${height-p.y}`).join(' ')}" fill="none" stroke="#10b981" stroke-width="1" />`).join('')}
+      ${vectors.arcs.map(a => `<circle cx="${a.cx}" cy="${height-a.cy}" r="${a.r}" fill="none" stroke="#f97316" stroke-width="1" />`).join('')}
+      ${vectors.pockets.map(p => `<rect x="${p.x}" y="${height - p.y - p.h}" width="${p.w}" height="${p.h}" fill="rgba(37,99,235,0.1)" stroke="#2563eb" stroke-width="1" />`).join('')}
+    `;
+
+    const warnings = [];
+    if (!computed.within) warnings.push('Pitch outside tolerance');
+    if (assignment.groupMaster && Math.abs(assignment.groupMaster.delta) > (assignment.pitchTolerance || 0.3)) {
+      warnings.push('Group reference delta exceeds tolerance');
+    }
+
+    details.innerHTML = `
+      <div><strong>${piece.name}</strong> (${piece.width_mm} x ${piece.height_mm})</div>
+      <div>Pattern: ${assignment.patternId}</div>
+      <div>Computed Pitch: ${computed.pitch} (N=${computed.n})</div>
+      ${assignment.groupMaster ? `<div>Master Pitch: ${assignment.groupMaster.masterPitch} | Piece Pitch: ${assignment.groupMaster.piecePitch} | Delta: ${assignment.groupMaster.delta}</div>` : ''}
+      ${warnings.length ? `<div class="warning">${warnings.join('; ')}</div>` : '<div class="muted">Within tolerance</div>'}
+    `;
+  }
+
+  function buildDxfForPiece(piece, assignment) {
+    const computed = computeAssignment(piece, assignment);
+    const vectors = buildLinesForPattern(piece, assignment, computed);
+    const entities = [];
+    if (assignment.includeCutOuter !== false) {
+      entities.push(dxfPolyline([
+        {x:0,y:0},{x:piece.width_mm,y:0},{x:piece.width_mm,y:piece.height_mm},{x:0,y:piece.height_mm},{x:0,y:0}
+      ], 'CUT_OUTER', true));
+    }
+    vectors.lines.forEach(line => {
+      const layer = assignment.patternId.includes('V_GROOVE') || assignment.patternId === 'CHEVRON' ? 'VCARVE' : 'ENGRAVE';
+      entities.push(dxfLine(line.x1, line.y1, line.x2, line.y2, layer));
+    });
+    vectors.polylines.forEach(points => {
+      entities.push(dxfPolyline(points, 'ENGRAVE', false));
+    });
+    vectors.arcs.forEach(arc => {
+      entities.push(dxfCircle(arc.cx, arc.cy, arc.r, 'ENGRAVE'));
+    });
+    vectors.pockets.forEach(rect => {
+      const pts = [
+        {x:rect.x, y:rect.y},
+        {x:rect.x + rect.w, y:rect.y},
+        {x:rect.x + rect.w, y:rect.y + rect.h},
+        {x:rect.x, y:rect.y + rect.h},
+        {x:rect.x, y:rect.y}
+      ];
+      entities.push(dxfPolyline(pts, 'POCKET', true));
+    });
+
+    return dxfHeader() + entities.join('') + dxfFooter();
+  }
+
+  function dxfHeader() {
+    return `0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n0\nLAYER\n2\nCUT_OUTER\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nENGRAVE\n70\n0\n62\n3\n6\nCONTINUOUS\n0\nLAYER\n2\nVCARVE\n70\n0\n62\n1\n6\nCONTINUOUS\n0\nLAYER\n2\nPOCKET\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n`;
+  }
+  function dxfFooter() {
+    return '0\nENDSEC\n0\nEOF\n';
+  }
+  function dxfLine(x1,y1,x2,y2,layer) {
+    return `0\nLINE\n8\n${layer}\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
+  }
+  function dxfPolyline(points, layer, closed) {
+    let str = `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n${closed ? 1 : 0}\n`;
+    points.forEach(p => {
+      str += `0\nVERTEX\n8\n${layer}\n10\n${p.x}\n20\n${p.y}\n`;
+    });
+    str += '0\nSEQEND\n';
+    return str;
+  }
+  function dxfCircle(cx, cy, r, layer) {
+    return `0\nCIRCLE\n8\n${layer}\n10\n${cx}\n20\n${cy}\n40\n${r}\n`;
+  }
+
+  function buildManifest() {
+    const items = state.pieces.map(piece => {
+      const assignment = state.assignments[piece.id];
+      return {
+        piece,
+        assignment
+      };
+    });
+    return JSON.stringify({ generated: new Date().toISOString(), items }, null, 2);
+  }
+
+  function downloadFile(filename, content, type) {
+    const blob = new Blob([content], { type: type || 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function buildZip(files) {
+    const encoder = new TextEncoder();
+    const fileRecords = [];
+    let offset = 0;
+    files.forEach(file => {
+      const nameBytes = encoder.encode(file.name);
+      const dataBytes = typeof file.data === 'string' ? encoder.encode(file.data) : file.data;
+      const crc = crc32(dataBytes);
+      const localHeader = new Uint8Array(30 + nameBytes.length);
+      const view = new DataView(localHeader.buffer);
+      view.setUint32(0, 0x04034b50, true);
+      view.setUint16(4, 20, true);
+      view.setUint16(6, 0, true);
+      view.setUint16(8, 0, true);
+      view.setUint16(10, 0, true);
+      view.setUint16(12, 0, true);
+      view.setUint32(14, crc, true);
+      view.setUint32(18, dataBytes.length, true);
+      view.setUint32(22, dataBytes.length, true);
+      view.setUint16(26, nameBytes.length, true);
+      view.setUint16(28, 0, true);
+      localHeader.set(nameBytes, 30);
+      fileRecords.push({ nameBytes, dataBytes, crc, localHeader, offset });
+      offset += localHeader.length + dataBytes.length;
+    });
+
+    const centralRecords = [];
+    let centralSize = 0;
+    fileRecords.forEach(record => {
+      const central = new Uint8Array(46 + record.nameBytes.length);
+      const view = new DataView(central.buffer);
+      view.setUint32(0, 0x02014b50, true);
+      view.setUint16(4, 20, true);
+      view.setUint16(6, 20, true);
+      view.setUint16(8, 0, true);
+      view.setUint16(10, 0, true);
+      view.setUint16(12, 0, true);
+      view.setUint16(14, 0, true);
+      view.setUint32(16, record.crc, true);
+      view.setUint32(20, record.dataBytes.length, true);
+      view.setUint32(24, record.dataBytes.length, true);
+      view.setUint16(28, record.nameBytes.length, true);
+      view.setUint16(30, 0, true);
+      view.setUint16(32, 0, true);
+      view.setUint16(34, 0, true);
+      view.setUint16(36, 0, true);
+      view.setUint32(38, 0, true);
+      view.setUint32(42, record.offset, true);
+      central.set(record.nameBytes, 46);
+      centralRecords.push(central);
+      centralSize += central.length;
+    });
+
+    const end = new Uint8Array(22);
+    const endView = new DataView(end.buffer);
+    endView.setUint32(0, 0x06054b50, true);
+    endView.setUint16(4, 0, true);
+    endView.setUint16(6, 0, true);
+    endView.setUint16(8, fileRecords.length, true);
+    endView.setUint16(10, fileRecords.length, true);
+    endView.setUint32(12, centralSize, true);
+    endView.setUint32(16, offset, true);
+    endView.setUint16(20, 0, true);
+
+    const totalSize = offset + centralSize + end.length;
+    const zipData = new Uint8Array(totalSize);
+    let cursor = 0;
+    fileRecords.forEach(record => {
+      zipData.set(record.localHeader, cursor);
+      cursor += record.localHeader.length;
+      zipData.set(record.dataBytes, cursor);
+      cursor += record.dataBytes.length;
+    });
+    centralRecords.forEach(record => {
+      zipData.set(record, cursor);
+      cursor += record.length;
+    });
+    zipData.set(end, cursor);
+    return new Blob([zipData], { type: 'application/zip' });
+  }
+
+  function crc32(bytes) {
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xff];
+    }
+    return (crc ^ (-1)) >>> 0;
+  }
+
+  const crcTable = (() => {
+    const table = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      }
+      table[i] = c;
+    }
+    return table;
+  })();
+
+  function exportZip() {
+    const files = [];
+    state.pieces.forEach(piece => {
+      const assignment = state.assignments[piece.id];
+      if (!assignment) return;
+      const dxf = buildDxfForPiece(piece, assignment);
+      const safeName = (piece.name || piece.id).replace(/[^a-z0-9-_]/gi, '_');
+      const fileName = `DXF/${safeName}__W${piece.width_mm}__H${piece.height_mm}__PATTERN_${assignment.patternId}.dxf`;
+      files.push({ name: fileName, data: dxf });
+    });
+    files.push({ name: 'MANIFEST/manifest.json', data: buildManifest() });
+    files.push({ name: 'README.txt', data: 'ArtCAM steps:\n1) Import DXF.\n2) Select layer ENGRAVE/VCARVE/POCKET and create toolpaths.\n3) CUT_OUTER is a contour reference.' });
+    const blob = buildZip(files);
+    downloadBlob('cnc_export.zip', blob);
+    document.getElementById('export-status').textContent = `Exported ZIP with ${files.length} files.`;
+  }
+
+  function downloadBlob(filename, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportAll() {
+    state.pieces.forEach(piece => {
+      const assignment = state.assignments[piece.id];
+      if (!assignment) return;
+      const dxf = buildDxfForPiece(piece, assignment);
+      const safeName = (piece.name || piece.id).replace(/[^a-z0-9-_]/gi, '_');
+      const fileName = `${safeName}__W${piece.width_mm}__H${piece.height_mm}__PATTERN_${assignment.patternId}.dxf`;
+      downloadFile(fileName, dxf, 'application/dxf');
+    });
+    downloadFile('manifest.json', buildManifest(), 'application/json');
+    downloadFile('README.txt', 'ArtCAM steps:\n1) Import DXF.\n2) Select layer ENGRAVE/VCARVE/POCKET and create toolpaths.\n3) CUT_OUTER is a contour reference.');
+    document.getElementById('export-status').textContent = 'Exported DXF files individually.';
+  }
+
+  function setupEvents() {
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => setActiveSection(btn.dataset.section));
+    });
+
+    document.getElementById('project-add').addEventListener('click', () => {
+      const name = document.getElementById('project-name').value.trim();
+      if (!name) return;
+      state.projects.push({ name, created: new Date().toLocaleDateString() });
+      document.getElementById('project-name').value = '';
+      saveState();
+      renderProjects();
+    });
+
+    document.getElementById('project-list').addEventListener('click', (e) => {
+      const idx = e.target.dataset.project;
+      if (idx == null) return;
+      state.projects = state.projects.map((p, i) => ({ ...p, active: i == idx }));
+      saveState();
+      renderProjects();
+    });
+
+    document.getElementById('qo-add').addEventListener('click', () => {
+      const piece = {
+        id: uid(),
+        name: document.getElementById('qo-name').value,
+        room: document.getElementById('qo-room').value,
+        cabinet: document.getElementById('qo-cabinet').value,
+        material: document.getElementById('qo-material').value,
+        thickness_mm: toNumber(document.getElementById('qo-thickness').value) || 18,
+        width_mm: toNumber(document.getElementById('qo-width').value) || 0,
+        height_mm: toNumber(document.getElementById('qo-height').value) || 0,
+        qty: toNumber(document.getElementById('qo-qty').value) || 1,
+        roleTags: '',
+        isMdfFrontOverride: null
+      };
+      state.pieces.push(piece);
+      saveState();
+      renderPieces();
+      renderAssignTable();
+    });
+
+    document.getElementById('qo-dup').addEventListener('click', () => {
+      const last = state.pieces[state.pieces.length - 1];
+      if (!last) return;
+      const dup = { ...last, id: uid() };
+      state.pieces.push(dup);
+      saveState();
+      renderPieces();
+      renderAssignTable();
+    });
+
+    document.getElementById('qo-clear').addEventListener('click', () => {
+      ['qo-name','qo-width','qo-height','qo-thickness','qo-qty','qo-material','qo-room','qo-cabinet'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('qo-qty').value = 1;
+    });
+
+    document.getElementById('pieces-refresh').addEventListener('click', renderPieces);
+    document.getElementById('pieces-filter').addEventListener('input', renderPieces);
+
+    document.getElementById('pieces-table').addEventListener('change', (e) => {
+      const id = e.target.dataset.override;
+      if (!id) return;
+      const piece = state.pieces.find(p => p.id === id);
+      if (!piece) return;
+      piece.isMdfFrontOverride = e.target.checked;
+      saveState();
+      renderPieces();
+    });
+
+    document.getElementById('pieces-table').addEventListener('click', (e) => {
+      const row = e.target.closest('tr');
+      if (!row) return;
+      const idCell = row.querySelector('td');
+      if (!idCell) return;
+      const id = idCell.textContent;
+      if (!id) return;
+      state.selectedPieces.clear();
+      state.selectedPieces.add(id);
+      renderAssignTable();
+      renderPreview();
+    });
+
+    document.getElementById('assign-refresh').addEventListener('click', renderAssignTable);
+    document.getElementById('assign-filter').addEventListener('input', renderAssignTable);
+
+    document.getElementById('assign-table').addEventListener('change', (e) => {
+      const id = e.target.dataset.select;
+      if (!id) return;
+      if (e.target.checked) {
+        state.selectedPieces.add(id);
+      } else {
+        state.selectedPieces.delete(id);
+      }
+      renderPreview();
+    });
+
+    document.getElementById('assign-table').addEventListener('click', (e) => {
+      const row = e.target.closest('tr[data-row]');
+      if (!row) return;
+      const id = row.dataset.row;
+      const index = Number(row.dataset.index);
+      const isCtrl = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+      if (isShift && state.lastSelectedIndex != null) {
+        const start = Math.min(state.lastSelectedIndex, index);
+        const end = Math.max(state.lastSelectedIndex, index);
+        for (let i = start; i <= end; i++) {
+          const pieceId = state.assignViewIds[i];
+          if (pieceId) state.selectedPieces.add(pieceId);
+        }
+      } else if (isCtrl) {
+        if (state.selectedPieces.has(id)) {
+          state.selectedPieces.delete(id);
+        } else {
+          state.selectedPieces.add(id);
+        }
+        state.lastSelectedIndex = index;
+      } else {
+        state.selectedPieces.clear();
+        state.selectedPieces.add(id);
+        state.lastSelectedIndex = index;
+      }
+      renderAssignTable();
+      renderPreview();
+    });
+
+    document.getElementById('assign-apply').addEventListener('click', () => {
+      if (state.selectedPieces.size === 0) return;
+      const assignmentTemplate = buildAssignmentFromForm();
+      applyAssignments(Array.from(state.selectedPieces), assignmentTemplate);
+    });
+
+    document.getElementById('assign-pattern').addEventListener('change', (e) => {
+      const pattern = state.patterns.find(p => p.id === e.target.value);
+      if (pattern && pattern.pitchTarget) {
+        document.getElementById('assign-pitch').value = pattern.pitchTarget;
+      }
+      if (pattern && pattern.startOffset != null) {
+        document.getElementById('assign-offset').value = pattern.startOffset;
+      }
+    });
+
+    document.getElementById('assign-clear').addEventListener('click', () => {
+      if (state.selectedPieces.size === 0) return;
+      clearAssignments(Array.from(state.selectedPieces));
+    });
+
+    document.getElementById('assign-set-master').addEventListener('click', () => {
+      const selected = Array.from(state.selectedPieces);
+      if (selected.length) {
+        state.masterPieceId = selected[0];
+        alert(`Master set to ${state.masterPieceId}`);
+      }
+    });
+
+    document.getElementById('csv-parse').addEventListener('click', () => {
+      const file = document.getElementById('csv-file').files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const text = evt.target.result;
+        const parsed = parseCsv(text);
+        const hasHeader = document.getElementById('csv-has-header').checked;
+        const headers = hasHeader ? parsed.rows[0] : parsed.rows[0].map((_, idx) => `COL${idx+1}`);
+        const mapping = state.csvMappings[0] || {};
+        renderCsvMappingOptions(headers, mapping);
+        renderCsvPreview(parsed, hasHeader);
+        document.getElementById('csv-import').dataset.parsed = JSON.stringify(parsed);
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('csv-load-sample').addEventListener('click', () => {
+      document.getElementById('csv-has-header').checked = true;
+      loadCsvText(sampleCsvText);
+    });
+
+    document.getElementById('csv-save-mapping').addEventListener('click', () => {
+      const mapping = {};
+      document.querySelectorAll('[data-map]').forEach(select => {
+        mapping[select.dataset.map] = select.value;
+      });
+      state.csvMappings = [mapping];
+      saveState();
+      alert('Mapping saved.');
+    });
+
+    document.getElementById('csv-import').addEventListener('click', (e) => {
+      const parsedText = e.target.dataset.parsed;
+      if (!parsedText) return;
+      const parsed = JSON.parse(parsedText);
+      applyCsvImport(parsed);
+      renderAssignTable();
+      renderPieces();
+    });
+
+    document.getElementById('export-zip').addEventListener('click', exportZip);
+    document.getElementById('export-all').addEventListener('click', exportAll);
+  }
+
+  function renderCsvPreview(parsed, hasHeader) {
+    const preview = parsed.rows.slice(0, 20);
+    const headers = hasHeader ? preview[0] : preview[0].map((_, i) => `COL${i+1}`);
+    const body = hasHeader ? preview.slice(1) : preview;
+    const container = document.getElementById('csv-preview');
+    container.innerHTML = `<table>
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${body.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  function initialize() {
+    loadState();
+    seedDemoData();
+    document.getElementById('csv-sample').value = sampleCsvText;
+    renderProjects();
+    renderPieces();
+    renderPatternLibrary();
+    renderAssignPatternOptions();
+    renderAssignTable();
+    renderPreview();
+    setupEvents();
+  }
+
+  initialize();
+})();
+</script>
+</body>
+</html>
